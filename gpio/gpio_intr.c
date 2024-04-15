@@ -72,4 +72,35 @@ int main(int argc, char *argv[])
         perror("open error");
         exit(-1);
     }
+    pfd.events = POLLPRI;
+    read(pfd.fd, &val, 1);
+    for (;;)
+    {
+        ret = poll(&pfd, 1, -1); // 调用 poll
+        if (0 > ret)
+        {
+            perror("poll error");
+            exit(-1);
+        }
+        else if (0 == ret)
+        {
+            fprintf(stderr, "poll timeout.\n");
+            continue;
+        }
+        if (pfd.revents & POLLPRI)
+        {
+            if (0 > lseek(pfd.fd, 0, SEEK_SET))
+            { 
+                perror("lseek error");
+                exit(-1);
+            }
+            if (0 > read(pfd.fd, &val, 1))
+            {
+                perror("read error");
+                exit(-1);
+            }
+            printf("GPIO 中断触发<value=%c>\n", val);
+        }
+    }
+    exit(0);
 }
