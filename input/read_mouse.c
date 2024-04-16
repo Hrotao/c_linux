@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     x = y = 0;
-    down = -1;
+    down = 0;
     valid = 0;
     while (1)
     {
@@ -36,44 +36,44 @@ int main(int argc, char *argv[])
         switch (in_ev.type)
         {
         case EV_KEY:
-            if (in_ev.code == BTN_TOUCH)
+            if (in_ev.code == BTN_LEFT)
             {
-                down = in_ev.value;
-                valid = 1;
+                down = 1;
+            }
+            else if (in_ev.code == BTN_RIGHT)
+            {
+                down = 2;
             }
             break;
-        case EV_ABS:
+        case EV_REL:
             switch (in_ev.code)
             {
-            case ABS_X:
-                x = in_ev.value;
+            case REL_X:
+                x += in_ev.value;
                 valid = 1;
                 break;
-            case ABS_Y:
-                y = in_ev.value;
+            case REL_Y:
+                y += in_ev.value;
                 valid = 1;
                 break;
             }
-        case EV_SYN: // 同步事件
+            break;
+        case EV_SYN:
             if (SYN_REPORT == in_ev.code)
             {
                 if (valid)
                 {
-                    switch (down)
-                    {
-                    case 1:
-                        printf("按下(%d, %d)\n", x, y);
-                        break;
-                    case 0:
-                        printf("松开\n");
-                        break;
-                    case -1:
-                        printf("移动(%d, %d)\n", x, y);
-                        break;
-                    }
-                    valid = 0;
-                    down = -1;
+                    printf("移动(%d, %d)\n", x, y);
                 }
+                if (down)
+                {
+                    if (down == 1)
+                        printf("左击\n");
+                    else
+                        printf("右击\n");
+                }
+                down = 0;
+                valid = 0;
             }
             break;
         }
