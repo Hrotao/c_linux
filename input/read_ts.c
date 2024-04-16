@@ -5,62 +5,66 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/input.h>
-
 int main(int argc, char *argv[])
 {
     struct input_event in_ev;
-    int x, y;
-    int down;
-    int valid;
+    int x, y;  // 触摸点 x 和 y 坐标
+    int down;  // 用于记录 BTN_TOUCH 事件的 value,1 表示按下,0 表示松开,-1 表示移动
+    int valid; // 用于记录数据是否有效(我们关注的信息发生更新表示有效,1 表示有效,0 表示无效)
     int fd = -1;
-    if (argc != 2)
+    /* 校验传参 */
+    if (2 != argc)
     {
         fprintf(stderr, "usage: %s <input-dev>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
+    /* 打开文件 */
     if (0 > (fd = open(argv[1], O_RDONLY)))
     {
         perror("open error");
         exit(EXIT_FAILURE);
     }
-    x = y = 0;
-    down = -1;
-    valid = 0;
-    while (1)
+    x = y = 0; // 初始化 x 和 y 坐标值
+    down = -1; // 初始化<移动>
+    valid = 0; // 初始化<无效>
+    for (;;)
     {
-        if (sizeof(struct input_event) != read(fd, &in_ev, sizeof(struct input_event)))
+        /* 循环读取数据 */
+        if (sizeof(struct input_event) !=
+            read(fd, &in_ev, sizeof(struct input_event)))
         {
             perror("read error");
             exit(EXIT_FAILURE);
         }
         switch (in_ev.type)
         {
-        case EV_KEY:
-            if (in_ev.code == BTN_TOUCH)
+        case EV_KEY: // 按键事件
+            if (BTN_TOUCH == in_ev.code)
             {
                 down = in_ev.value;
                 valid = 1;
             }
             break;
-        case EV_ABS:
+        case EV_ABS: // 绝对位移事件
             switch (in_ev.code)
             {
-            case ABS_X:
+            case ABS_X: // X 坐标
                 x = in_ev.value;
                 valid = 1;
                 break;
-            case ABS_Y:
+            case ABS_Y: // Y 坐标
                 y = in_ev.value;
                 valid = 1;
                 break;
             }
+            break;
         case EV_SYN: // 同步事件
             if (SYN_REPORT == in_ev.code)
             {
                 if (valid)
-                {
+                { // 判断是否有效
                     switch (down)
-                    {
+                    { // 判断状态
                     case 1:
                         printf("按下(%d, %d)\n", x, y);
                         break;
@@ -71,8 +75,8 @@ int main(int argc, char *argv[])
                         printf("移动(%d, %d)\n", x, y);
                         break;
                     }
-                    valid = 0;
-                    down = -1;
+                    valid = 0; // 重置 valid
+                    down = -1; // 重置 down
                 }
             }
             break;
